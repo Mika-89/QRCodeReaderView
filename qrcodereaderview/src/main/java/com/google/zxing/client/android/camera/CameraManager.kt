@@ -161,9 +161,9 @@ class CameraManager(context: Context) {
             openCamera?.camera?.release()
             openCamera = null
             // Make sure to clear these each time we close the camera, so that any scanning rect
-// requested by intent is forgotten.
-// framingRect = null;
-// framingRectInPreview = null;
+            // requested by intent is forgotten.
+            // framingRect = null;
+            // framingRectInPreview = null;
         }
     }
 
