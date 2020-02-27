@@ -2,7 +2,6 @@ package com.example.qr_readerexample
 
 import android.Manifest
 import android.content.pm.PackageManager
-import android.graphics.PointF
 import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
@@ -21,7 +20,7 @@ class DecoderActivity : AppCompatActivity(), OnRequestPermissionsResultCallback,
     private var qrCodeReaderView: QRCodeReaderView? = null
     private var flashlightCheckBox: CheckBox? = null
     private var enableDecodingCheckBox: CheckBox? = null
-    private var pointsOverlayView: PointsOverlayView? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_decoder)
@@ -62,10 +61,8 @@ class DecoderActivity : AppCompatActivity(), OnRequestPermissionsResultCallback,
 
     // Called when a QR is decoded
     // "text" : the text encoded in QR
-    // "points" : points where QR control points are placed
-    override fun onQRCodeRead(text: String?, points: Array<PointF?>?) {
+    override fun onQRCodeRead(text: String?) {
         resultTextView?.text = text
-        pointsOverlayView?.setPoints(points)
     }
 
     private fun requestCameraPermission() {
@@ -95,7 +92,6 @@ class DecoderActivity : AppCompatActivity(), OnRequestPermissionsResultCallback,
         resultTextView = content.findViewById(R.id.result_text_view)
         flashlightCheckBox = content.findViewById(R.id.flashlight_checkbox)
         enableDecodingCheckBox = content.findViewById(R.id.enable_decoding_checkbox)
-        pointsOverlayView = content.findViewById(R.id.points_overlay_view)
         qrCodeReaderView?.setAutofocusInterval(2000L)
         qrCodeReaderView?.setOnQRCodeReadListener(this)
         qrCodeReaderView?.setBackCamera()

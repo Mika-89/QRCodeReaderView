@@ -18,8 +18,6 @@ package com.dlazaro66.qrcodereaderview
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
-import android.graphics.Point
-import android.graphics.PointF
 import android.hardware.Camera
 import android.hardware.Camera.CameraInfo
 import android.hardware.Camera.PreviewCallback
@@ -30,7 +28,9 @@ import android.view.Surface
 import android.view.SurfaceHolder
 import android.view.SurfaceView
 import android.view.WindowManager
-import com.google.zxing.*
+import com.google.zxing.BinaryBitmap
+import com.google.zxing.DecodeHintType
+import com.google.zxing.Result
 import com.google.zxing.client.android.camera.CameraManager
 import com.google.zxing.common.HybridBinarizer
 import com.google.zxing.qrcode.QRCodeReader
@@ -46,7 +46,7 @@ import java.lang.ref.WeakReference
 @Suppress("DEPRECATION")
 class QRCodeReaderView @JvmOverloads constructor(context: Context?, attrs: AttributeSet? = null) : SurfaceView(context, attrs), SurfaceHolder.Callback, PreviewCallback {
     interface OnQRCodeReadListener {
-        fun onQRCodeRead(text: String?, points: Array<PointF?>?)
+        fun onQRCodeRead(text: String?)
     }
 
     private var mOnQRCodeReadListener: OnQRCodeReadListener? = null
@@ -278,7 +278,7 @@ class QRCodeReaderView @JvmOverloads constructor(context: Context?, attrs: Attri
     private class DecodeFrameTask internal constructor(view: QRCodeReaderView, hints: Map<DecodeHintType, Any?>?) : AsyncTask<ByteArray?, Void?, Result?>() {
         private val viewRef: WeakReference<QRCodeReaderView> = WeakReference(view)
         private val hintsRef: WeakReference<Map<DecodeHintType, Any?>?> = WeakReference(hints)
-        private val qrToViewPointTransformer = QRToViewPointTransformer()
+
         override fun doInBackground(vararg p0: ByteArray?): Result? {
             val view = viewRef.get() ?: return null
             val source = view.mCameraManager?.buildLuminanceSource(p0[0], view.mPreviewWidth,
@@ -287,12 +287,8 @@ class QRCodeReaderView @JvmOverloads constructor(context: Context?, attrs: Attri
             val bitmap = BinaryBitmap(hybBin)
             try {
                 return view.mQRCodeReader?.decode(bitmap, hintsRef.get())
-            } catch (e: ChecksumException) {
+            } catch (e: Exception) {
                 SimpleLog.d(TAG, "ChecksumException", e)
-            } catch (e: NotFoundException) {
-                SimpleLog.d(TAG, "No QR Code found")
-            } catch (e: FormatException) {
-                SimpleLog.d(TAG, "FormatException", e)
             } finally {
                 view.mQRCodeReader?.reset()
             }
@@ -303,33 +299,13 @@ class QRCodeReaderView @JvmOverloads constructor(context: Context?, attrs: Attri
             super.onPostExecute(result)
             val view = viewRef.get()
             // Notify we found a QRCode
-            view?.let {
-                if (result != null && view.mOnQRCodeReadListener != null) { // Transform resultPoints to View coordinates
-                    val transformedPoints = transformToViewCoordinates(view, result.resultPoints)
-                    view.mOnQRCodeReadListener?.onQRCodeRead(result.text, transformedPoints)
+            view?.let { it1 ->
+                result?.let { it2 ->
+                    if (it2.text.trim().isNotEmpty()) {
+                        it1.mOnQRCodeReadListener?.onQRCodeRead(it2.text)
+                    }
                 }
             }
-        }
-
-        /**
-         * Transform result to surfaceView coordinates
-         *
-         *
-         * This method is needed because coordinates are given in landscape camera coordinates when
-         * device is in portrait mode and different coordinates otherwise.
-         *
-         * @return a new PointF array with transformed points
-         */
-        private fun transformToViewCoordinates(view: QRCodeReaderView,
-                                               resultPoints: Array<ResultPoint>): Array<PointF?>? {
-            val orientationDegrees = view.cameraDisplayOrientation
-            val orientation = if (orientationDegrees == 90 || orientationDegrees == 270) Orientation.PORTRAIT else Orientation.LANDSCAPE
-            val viewSize = Point(view.width, view.height)
-            val cameraPreviewSize = view.mCameraManager?.previewSize
-            val isMirrorCamera = (view.mCameraManager?.previewCameraId
-                    == CameraInfo.CAMERA_FACING_FRONT)
-            return qrToViewPointTransformer.transform(resultPoints, isMirrorCamera, orientation,
-                    viewSize, cameraPreviewSize)
         }
 
     }
